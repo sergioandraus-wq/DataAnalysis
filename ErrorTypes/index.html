@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type I and Type II Errors — Interactive</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#15181d; --muted:#6b7280; --line:#e3e6eb;
+    --h0:#2563eb; --h1:#ea580c; --h0d:#1e40af; --h1d:#9a3412;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink)}
+  body{
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{padding:22px 18px 4px;max-width:1400px;margin:0 auto}
+  header h1{margin:0;font-size:19px;font-weight:650;letter-spacing:-.01em}
+  header p{margin:5px 0 0;color:var(--muted);font-size:13.5px;max-width:760px}
+  .wrap{
+    display:grid;grid-template-columns:296px minmax(0,1fr);gap:16px;
+    padding:16px 18px 28px;max-width:1400px;margin:0 auto;align-items:start;
+  }
+  @media(max-width:880px){ .wrap{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  aside{padding:16px}
+  aside h2{margin:0 0 12px;font-size:11px;font-weight:650;letter-spacing:.08em;
+           text-transform:uppercase;color:var(--muted)}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:550;margin-bottom:4px;color:#374151}
+  .field .sub{font-weight:400;color:var(--muted)}
+  input[type=number]{
+    width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+    font:13.5px/1.4 var(--mono);color:var(--ink);background:#fcfcfd;
+  }
+  input[type=number]:focus{outline:2px solid rgba(37,99,235,.25);border-color:var(--h0)}
+  input[type=range]{width:100%;accent-color:var(--h0);margin:6px 0 2px}
+  .segmented{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .segmented button{
+    flex:1;padding:7px 4px;border:0;background:#fcfcfd;font:12.5px/1.2 inherit;color:#4b5563;
+    cursor:pointer;border-right:1px solid var(--line);
+  }
+  .segmented button:last-child{border-right:0}
+  .segmented button[aria-pressed=true]{background:#111827;color:#fff;font-weight:600}
+  .presets{display:flex;gap:6px;margin-top:6px}
+  .presets button{
+    flex:1;padding:5px 0;border:1px solid var(--line);background:#fcfcfd;border-radius:7px;
+    font:12px/1 var(--mono);color:#4b5563;cursor:pointer;
+  }
+  .presets button:hover{background:#f1f3f6}
+  .hr{height:1px;background:var(--line);margin:16px 0 14px}
+  .note{font-size:12px;line-height:1.55;color:var(--muted)}
+  .note b{color:#374151;font-weight:600}
+  main{display:grid;gap:14px;min-width:0}
+  .plot{padding:6px 6px 2px}
+  canvas{display:block;width:100%;border-radius:10px}
+  #main{height:430px}
+  #power{height:196px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;
+         background:var(--line);border-radius:12px;overflow:hidden;margin:0 6px 6px}
+  .stat{background:#fff;padding:10px 12px}
+  .stat .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+           font-weight:600;white-space:nowrap}
+  .stat .v{font:15.5px/1.3 var(--mono);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stat.b .v{color:var(--h0)} .stat.o .v{color:var(--h1)}
+  .caption{padding:8px 14px 12px;font-size:12.5px;color:var(--muted)}
+  .caption b{color:#374151;font-weight:600}
+  button.reset{
+    width:100%;margin-top:14px;padding:8px;border:1px solid var(--line);background:#fcfcfd;
+    border-radius:8px;font:13px/1 inherit;color:#374151;cursor:pointer
+  }
+  button.reset:hover{background:#f1f3f6}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Type I and Type II Errors</h1>
+  <p>Sampling distribution of the sample mean under H₀ and under H₁. The shaded
+     blue area is α (rejecting a true null); the shaded orange area is β (failing to
+     reject a false null). Drag the dashed critical line to trade one against the other.</p>
+</header>
+
+<div class="wrap">
+  <aside class="card">
+    <h2>Parameters</h2>
+
+    <div class="field">
+      <label for="mu0">Null mean <span class="sub">μ₀</span></label>
+      <input id="mu0" type="number" step="any" value="100">
+    </div>
+
+    <div class="field">
+      <label for="mu1">Alternative mean <span class="sub">μ₁</span></label>
+      <input id="mu1" type="number" step="any" value="103">
+    </div>
+
+    <div class="field">
+      <label for="sigma2">Common variance <span class="sub">σ²</span></label>
+      <input id="sigma2" type="number" step="any" min="0.000001" value="100">
+    </div>
+
+    <div class="field">
+      <label for="n">Sample size <span class="sub">n</span></label>
+      <input id="n" type="number" step="1" min="1" max="100000" value="25">
+      <input id="nslider" type="range" min="0" max="1000" step="1" value="0">
+    </div>
+
+    <div class="field">
+      <label for="alpha">Significance level <span class="sub">α</span></label>
+      <input id="alpha" type="number" step="any" min="0.0000001" max="0.5" value="0.05">
+      <div class="presets">
+        <button type="button" data-a="0.01">0.01</button>
+        <button type="button" data-a="0.05">0.05</button>
+        <button type="button" data-a="0.10">0.10</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Alternative hypothesis</label>
+      <div class="segmented" id="mode">
+        <button type="button" data-m="left"  aria-pressed="false">μ &lt; μ₀</button>
+        <button type="button" data-m="right" aria-pressed="true">μ &gt; μ₀</button>
+        <button type="button" data-m="two"   aria-pressed="false">μ ≠ μ₀</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <p class="note">
+      Both curves are <b>N(μ, σ²/n)</b>, so they have the same width. Increasing
+      <b>n</b> narrows both at once: the overlap shrinks and α and β fall together.
+      Changing the critical line only moves area from one curve to the other.
+    </p>
+
+    <button class="reset" id="reset" type="button">Reset to defaults</button>
+  </aside>
+
+  <main>
+    <section class="card plot">
+      <canvas id="main"></canvas>
+      <div class="stats">
+        <div class="stat"><div class="k">Std. error</div><div class="v" id="o-se">—</div></div>
+        <div class="stat"><div class="k">Critical value</div><div class="v" id="o-crit">—</div></div>
+        <div class="stat b"><div class="k">α — type I</div><div class="v" id="o-alpha">—</div></div>
+        <div class="stat o"><div class="k">β — type II</div><div class="v" id="o-beta">—</div></div>
+        <div class="stat"><div class="k">Power 1−β</div><div class="v" id="o-power">—</div></div>
+        <div class="stat"><div class="k">n for 80% / 90%</div><div class="v" id="o-nreq">—</div></div>
+      </div>
+      <div class="caption" id="caption">—</div>
+    </section>
+
+    <section class="card plot">
+      <canvas id="power"></canvas>
+      <div class="caption">
+        <b>Power against sample size.</b> With α held fixed, power rises with n and
+        approaches 1. This is the only way to make α and β small simultaneously.
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ------------------------------------------------------------------ */
+  /* Normal distribution helpers                                        */
+  /* ------------------------------------------------------------------ */
+  const SQRT2PI = Math.sqrt(2 * Math.PI);
+
+  const pdf = (x, mu, sd) => {
+    const z = (x - mu) / sd;
+    return Math.exp(-0.5 * z * z) / (sd * SQRT2PI);
+  };
+
+  // Standard normal CDF (Abramowitz & Stegun 26.2.17, |err| < 7.5e-8)
+  const cdf = (z) => {
+    const t = 1 / (1 + 0.2316419 * Math.abs(z));
+    const d = 0.3989423 * Math.exp(-0.5 * z * z);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 +
+              t * (-1.821256 + t * 1.330274))));
+    return z > 0 ? 1 - p : p;
+  };
+
+  // z such that P(Z > z) = a
+  const zUpper = (a) => {
+    if (!(a > 0)) return 40;
+    if (a >= 1) return -40;
+    let lo = -12, hi = 12;
+    for (let i = 0; i < 120; i++) {
+      const m = 0.5 * (lo + hi);
+      if (cdf(m) < 1 - a) lo = m; else hi = m;
+    }
+    return 0.5 * (lo + hi);
+  };
+
+  const zCache = new Map();
+  const zUpperC = (a) => {
+    const k = a.toPrecision(10);
+    let v = zCache.get(k);
+    if (v === undefined) { v = zUpper(a); zCache.set(k, v); }
+    return v;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* State                                                              */
+  /* ------------------------------------------------------------------ */
+  const DEFAULTS = { mu0: 100, mu1: 103, sigma2: 100, n: 25, alpha: 0.05, mode: 'right' };
+  const state = Object.assign({}, DEFAULTS);
+
+  const N_MIN = 1, N_MAX = 100000;
+
+  const $ = (id) => document.getElementById(id);
+  const mainCanvas = $('main');
+  const powerCanvas = $('power');
+
+  const C = {
+    h0: '#2563eb', h1: '#ea580c', h0d: '#1e40af', h1d: '#9a3412',
+    axis: '#a3aab4', grid: '#eef0f3', ink: '#15181d', muted: '#6b7280'
+  };
+  const FONT = '12px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+  const FONTB = '600 12px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+  const MONO = '11.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+
+  /* ------------------------------------------------------------------ */
+  /* Derived quantities                                                 */
+  /* ------------------------------------------------------------------ */
+  function derive(n) {
+    n = n || state.n;
+    const sd = Math.sqrt(Math.max(state.sigma2, 1e-12));
+    const SE = sd / Math.sqrt(n);
+    const mu0 = state.mu0, mu1 = state.mu1;
+    const a = state.alpha;
+
+    let c1 = -Infinity, c2 = Infinity, zc;
+    if (state.mode === 'right') {
+      zc = zUpperC(a);      c2 = mu0 + zc * SE;
+    } else if (state.mode === 'left') {
+      zc = zUpperC(a);      c1 = mu0 - zc * SE;
+    } else {
+      zc = zUpperC(a / 2);  c1 = mu0 - zc * SE; c2 = mu0 + zc * SE;
+    }
+
+    let beta;
+    if (state.mode === 'right')      beta = cdf((c2 - mu1) / SE);
+    else if (state.mode === 'left')  beta = 1 - cdf((c1 - mu1) / SE);
+    else                             beta = cdf((c2 - mu1) / SE) - cdf((c1 - mu1) / SE);
+    beta = Math.min(1, Math.max(0, beta));
+
+    return { sd, SE, c1, c2, zc, beta, power: 1 - beta, d: (mu1 - mu0) / SE };
+  }
+
+  function powerAt(n) {
+    return derive(n).power;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Canvas plumbing                                                    */
+  /* ------------------------------------------------------------------ */
+  function fitCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1;
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(240, Math.round(r.width));
+    const h = Math.max(120, Math.round(r.height));
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+    }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+
+  function niceTicks(min, max, target) {
+    const span = max - min;
+    if (!(span > 0)) return { ticks: [min], step: 1 };
+    const rough = span / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / mag;
+    const step = mag * (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10);
+    const out = [];
+    let t = Math.ceil(min / step) * step;
+    for (; t <= max + step * 1e-9; t += step) {
+      out.push(Math.abs(t) < step * 1e-9 ? 0 : t);
+    }
+    return { ticks: out, step };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Main plot                                                          */
+  /* ------------------------------------------------------------------ */
+  let view = null;
+
+  function drawMain() {
+    const { ctx, w: W, h: H } = fitCanvas(mainCanvas);
+    const d = derive();
+    const SE = d.SE;
+    const mu0 = state.mu0, mu1 = state.mu1;
+    const pad = { l: 62, r: 24, t: 26, b: 48 };
+
+    const spread = Math.max(3.4 * SE, 1e-9);
+    let xmin = Math.min(mu0, mu1) - spread;
+    let xmax = Math.max(mu0, mu1) + spread;
+    if (isFinite(d.c2)) xmax = Math.max(xmax, d.c2 + 0.9 * SE);
+    if (isFinite(d.c1)) xmin = Math.min(xmin, d.c1 - 0.9 * SE);
+    if (!(xmax > xmin)) { xmin -= 1; xmax += 1; }
+
+    const ymax = pdf(mu0, mu0, SE) * 1.16;
+
+    const X = (x) => pad.l + (x - xmin) / (xmax - xmin) * (W - pad.l - pad.r);
+    const Y = (y) => H - pad.b - (y / ymax) * (H - pad.t - pad.b);
+    const Y0 = Y(0);
+
+    view = { xmin, xmax, pad, W, H, X, Y, SE, dC1: d.c1, dC2: d.c2 };
+
+    /* --- grid --------------------------------------------------- */
+    const { ticks, step } = niceTicks(xmin, xmax, 7);
+    const dec = Math.max(0, Math.min(6, -Math.floor(Math.log10(step))));
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.fillStyle = C.muted; ctx.font = MONO; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of ticks) {
+      const px = X(t);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, Y0); ctx.stroke();
+      ctx.fillText(t.toFixed(dec), px, Y0 + 8);
+    }
+
+    /* --- areas under the curves --------------------------------- */
+    const pathArea = (mu, sd, x0, x1) => {
+      const N = 240;
+      ctx.beginPath();
+      ctx.moveTo(X(x0), Y0);
+      for (let i = 0; i <= N; i++) {
+        const x = x0 + (x1 - x0) * i / N;
+        ctx.lineTo(X(x), Y(pdf(x, mu, sd)));
+      }
+      ctx.lineTo(X(x1), Y0);
+      ctx.closePath();
+    };
+
+    // faint full-curve fills
+    ctx.fillStyle = 'rgba(37,99,235,0.055)';
+    pathArea(mu0, SE, xmin, xmax); ctx.fill();
+    ctx.fillStyle = 'rgba(234,88,12,0.055)';
+    pathArea(mu1, SE, xmin, xmax); ctx.fill();
+
+    // alpha regions (under H0, in the rejection region)
+    const alphaRegions = [];
+    if (state.mode === 'right')      alphaRegions.push([mu0, d.c2, xmax, 'α']);
+    else if (state.mode === 'left')  alphaRegions.push([mu0, xmin, d.c1, 'α']);
+    else {
+      alphaRegions.push([mu0, xmin, d.c1, 'α/2']);
+      alphaRegions.push([mu0, d.c2, xmax, 'α/2']);
+    }
+
+    // beta region (under H1, in the acceptance region)
+    let betaRegion = null;
+    if (state.mode === 'right')      betaRegion = [mu1, xmin, d.c2];
+    else if (state.mode === 'left')  betaRegion = [mu1, d.c1, xmax];
+    else                             betaRegion = [mu1, d.c1, d.c2];
+
+    ctx.fillStyle = 'rgba(234,88,12,0.34)';
+    pathArea(betaRegion[0], SE, betaRegion[1], betaRegion[2]); ctx.fill();
+
+    ctx.fillStyle = 'rgba(37,99,235,0.34)';
+    for (const r of alphaRegions) { pathArea(r[0], SE, r[1], r[2]); ctx.fill(); }
+
+    /* --- curves -------------------------------------------------- */
+    const pathCurve = (mu, sd) => {
+      const N = 420;
+      ctx.beginPath();
+      for (let i = 0; i <= N; i++) {
+        const x = xmin + (xmax - xmin) * i / N;
+        const y = pdf(x, mu, sd);
+        if (i === 0) ctx.moveTo(X(x), Y(y)); else ctx.lineTo(X(x), Y(y));
+      }
+    };
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = C.h0; ctx.lineWidth = 2.2; pathCurve(mu0, SE); ctx.stroke();
+    ctx.strokeStyle = C.h1; ctx.lineWidth = 2.2; pathCurve(mu1, SE); ctx.stroke();
+
+    /* --- faint markers at the two means -------------------------- */
+    ctx.save();
+    ctx.setLineDash([2, 4]); ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(37,99,235,0.40)';
+    ctx.beginPath(); ctx.moveTo(X(mu0), Y0); ctx.lineTo(X(mu0), Y(pdf(mu0, mu0, SE)) - 5); ctx.stroke();
+    ctx.strokeStyle = 'rgba(234,88,12,0.40)';
+    ctx.beginPath(); ctx.moveTo(X(mu1), Y0); ctx.lineTo(X(mu1), Y(pdf(mu1, mu1, SE)) - 5); ctx.stroke();
+    ctx.restore();
+
+    /* --- critical line(s) ---------------------------------------- */
+    const drawCrit = (c, label) => {
+      if (!isFinite(c)) return;
+      const px = X(c);
+      const top = Y(ymax * 0.84);
+      ctx.save();
+      ctx.setLineDash([5, 4]); ctx.lineWidth = 1.6; ctx.strokeStyle = C.ink;
+      ctx.beginPath(); ctx.moveTo(px, Y0); ctx.lineTo(px, top); ctx.stroke();
+      ctx.restore();
+
+      ctx.font = FONTB; ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(label,
+        Math.min(W - pad.r - 2, Math.max(pad.l + 2, px)),
+        Math.max(pad.t + 14, top - 5));
+    };
+    if (state.mode === 'right')      drawCrit(d.c2, 'c = ' + fmt(d.c2, 2));
+    else if (state.mode === 'left')  drawCrit(d.c1, 'c = ' + fmt(d.c1, 2));
+    else { drawCrit(d.c1, fmt(d.c1, 2)); drawCrit(d.c2, fmt(d.c2, 2)); }
+
+    /* --- area labels at the centroids ---------------------------- */
+    const centroid = (mu, sd, x0, x1) => {
+      const N = 400; let ax = 0, ay = 0, wt = 0;
+      for (let i = 0; i < N; i++) {
+        const x = x0 + (x1 - x0) * (i + 0.5) / N;
+        const f = pdf(x, mu, sd);
+        ax += x * f; ay += f * f / 2; wt += f;
+      }
+      return wt > 0 ? { x: ax / wt, y: ay / wt } : null;
+    };
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+    const areaLabel = (txt, px, py, color) => {
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+      ctx.strokeText(txt, px, py);
+      ctx.fillStyle = color; ctx.fillText(txt, px, py);
+    };
+    for (const r of alphaRegions) {
+      const c = centroid(r[0], SE, r[1], r[2]);
+      if (!c) continue;
+      const px = X(c.x), py = Y(c.y);
+      if (px < pad.l + 10 || px > W - pad.r - 10) continue;
+      if (py < pad.t + 10 || py > Y0 - 8) continue;
+      areaLabel(r[3], px, py, C.h0d);
+    }
+    const cb = centroid(betaRegion[0], SE, betaRegion[1], betaRegion[2]);
+    if (cb) {
+      const px = X(cb.x), py = Y(cb.y);
+      if (px > pad.l + 10 && px < W - pad.r - 10 && py > pad.t + 10 && py < Y0 - 8) {
+        areaLabel('β', px, py, C.h1d);
+      }
+    }
+
+    /* --- axes ---------------------------------------------------- */
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(pad.l, Y0); ctx.lineTo(W - pad.r, Y0); ctx.stroke();
+
+    ctx.fillStyle = C.muted; ctx.font = FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('sample mean  (n = ' + state.n + ')', pad.l + (W - pad.l - pad.r) / 2, Y0 + 26);
+
+    ctx.save();
+    ctx.translate(16, pad.t + (Y0 - pad.t) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.muted; ctx.font = FONT;
+    ctx.fillText('density', 0, 0);
+    ctx.restore();
+
+    /* --- legend -------------------------------------------------- */
+    const legY = pad.t - 12;
+    let lx = pad.l + 4;
+    const legendItem = (color, text) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(lx, legY - 5, 9, 9, 2) : ctx.rect(lx, legY - 5, 9, 9);
+      ctx.fill();
+      ctx.fillStyle = C.ink; ctx.font = FONTB; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, lx + 14, legY);
+      lx += 14 + ctx.measureText(text).width + 18;
+    };
+    legendItem(C.h0, 'H₀: μ = ' + fmt(state.mu0, 4));
+    legendItem(C.h1, 'H₁: μ = ' + fmt(state.mu1, 4));
+
+    /* --- drag hint ----------------------------------------------- */
+    ctx.fillStyle = '#b3b9c2'; ctx.font = MONO; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('drag the critical line', W - pad.r, H - 6);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Power vs n                                                         */
+  /* ------------------------------------------------------------------ */
+  function drawPower() {
+    const { ctx, w: W, h: H } = fitCanvas(powerCanvas);
+    const pad = { l: 46, r: 20, t: 16, b: 34 };
+    const LX = (n) => pad.l + (Math.log(n) - Math.log(N_MIN)) /
+                       (Math.log(N_MAX) - Math.log(N_MIN)) * (W - pad.l - pad.r);
+    const LY = (p) => H - pad.b - p * (H - pad.t - pad.b);
+
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.fillStyle = C.muted; ctx.font = MONO; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+      const y = LY(p);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      ctx.fillText(p.toFixed(2), pad.l - 8, y);
+    }
+
+    // x ticks
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const nTicks = [1, 10, 100, 1000, 10000, 100000];
+    for (const n of nTicks) {
+      const px = LX(n);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, H - pad.b);
+      ctx.strokeStyle = C.grid; ctx.stroke();
+      const lbl = n >= 1000 ? (n / 1000) + 'k' : String(n);
+      ctx.fillStyle = C.muted;
+      ctx.fillText(lbl, px, H - pad.b + 7);
+    }
+    ctx.fillText('sample size', pad.l + (W - pad.l - pad.r) / 2, H - pad.b + 21);
+
+    // power >= 0.8 band
+    ctx.fillStyle = 'rgba(234,88,12,0.06)';
+    ctx.fillRect(pad.l, LY(1), W - pad.l - pad.r, LY(0.8) - LY(1));
+
+    // alpha reference line
+    ctx.save();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(37,99,235,0.75)'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(pad.l, LY(state.alpha)); ctx.lineTo(W - pad.r, LY(state.alpha)); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = C.h0; ctx.font = MONO; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('α', W - pad.r - 2, LY(state.alpha) - 3);
+
+    // power curve
+    const N = 260;
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const n = Math.exp(Math.log(N_MIN) + (Math.log(N_MAX) - Math.log(N_MIN)) * i / N);
+      const p = powerAt(n);
+      if (i === 0) ctx.moveTo(LX(n), LY(p)); else ctx.lineTo(LX(n), LY(p));
+    }
+    ctx.strokeStyle = C.h1; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.stroke();
+
+    // current n marker
+    const nNow = Math.min(N_MAX, Math.max(N_MIN, state.n));
+    const pNow = powerAt(state.n);
+    const px = LX(nNow), py = LY(pNow);
+    ctx.save();
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(21,24,29,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, H - pad.b); ctx.lineTo(px, py); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = C.h1; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(px, py, 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = C.ink; ctx.font = FONTB; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    const label = 'n = ' + state.n + '  →  power ' + pNow.toFixed(3);
+    const lw = ctx.measureText(label).width;
+    const lx = Math.min(W - pad.r - lw / 2 - 4, Math.max(pad.l + lw / 2 + 4, px));
+    ctx.fillText(label, lx, Math.max(pad.t + 12, py - 9));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Readouts                                                           */
+  /* ------------------------------------------------------------------ */
+  function fmt(x, d) {
+    if (typeof x !== 'number' || !isFinite(x)) return '—';
+    const a = Math.abs(x);
+    if (a !== 0 && (a < 1e-4 || a >= 1e7)) return x.toExponential(2);
+    return x.toFixed(d === undefined ? 3 : d);
+  }
+
+  function nForPower(target) {
+    const delta = state.mu1 - state.mu0;
+    const sd = Math.sqrt(state.sigma2);
+    if (!(sd > 0) || Math.abs(delta) < 1e-9) return null;
+    const dir = state.mode === 'right' ? 1 : state.mode === 'left' ? -1 : 0;
+    if (dir !== 0 && Math.sign(delta) !== dir) return null;
+    const aUse = state.mode === 'two' ? state.alpha / 2 : state.alpha;
+    const zA = zUpperC(aUse);
+    const zB = zUpper(1 - target);
+    return Math.ceil(Math.pow((zA + zB) * sd / Math.abs(delta), 2));
+  }
+
+  function fmtN(n) {
+    if (n === null || !isFinite(n)) return '—';
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e4) return Math.round(n / 1000) + 'k';
+    return String(n);
+  }
+
+  function updateReadouts() {
+    const d = derive();
+
+    $('o-se').textContent = fmt(d.SE, 3);
+
+    let crit;
+    if (state.mode === 'right') crit = fmt(d.c2, 2);
+    else if (state.mode === 'left') crit = fmt(d.c1, 2);
+    else crit = '±' + fmt(d.c2 - state.mu0, 2);
+    $('o-crit').textContent = crit;
+
+    $('o-alpha').textContent = state.alpha >= 0.001
+      ? state.alpha.toFixed(4) : state.alpha.toExponential(1);
+    $('o-beta').textContent = fmt(d.beta, 4);
+    $('o-power').textContent = fmt(d.power, 4);
+
+    const n80 = nForPower(0.80), n90 = nForPower(0.90);
+    $('o-nreq').textContent = fmtN(n80) + ' / ' + fmtN(n90);
+
+    let rule;
+    if (state.mode === 'right') rule = 'Reject H₀ when x̄ > ' + fmt(d.c2, 3) + '.';
+    else if (state.mode === 'left') rule = 'Reject H₀ when x̄ < ' + fmt(d.c1, 3) + '.';
+    else rule = 'Reject H₀ when x̄ < ' + fmt(d.c1, 3) + ' or x̄ > ' + fmt(d.c2, 3) + '.';
+
+    let extra = '';
+    if (state.mode !== 'two') {
+      const delta = state.mu1 - state.mu0;
+      const dir = state.mode === 'right' ? 1 : -1;
+      if (Math.abs(delta) < 1e-9) extra = ' The two means coincide, so β = 1 − α exactly.';
+      else if (Math.sign(delta) !== dir) extra = ' The alternative lies on the wrong side of μ₀: power is below α.';
+    }
+
+    $('caption').innerHTML = rule +
+      ' Standard error σ/√n = ' + fmt(d.SE, 4) +
+      '; standardised effect (μ₁−μ₀)/SE = ' + fmt(d.d, 3) + '.' + extra;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Render                                                             */
+  /* ------------------------------------------------------------------ */
+  function render() {
+    drawMain();
+    drawPower();
+    updateReadouts();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Input wiring                                                       */
+  /* ------------------------------------------------------------------ */
+  const num = (id) => parseFloat($(id).value);
+
+  function readInputs() {
+    const mu0 = num('mu0'), mu1 = num('mu1'), s2 = num('sigma2');
+    const n = num('n'), a = num('alpha');
+    if (isFinite(mu0)) state.mu0 = mu0;
+    if (isFinite(mu1)) state.mu1 = mu1;
+    if (isFinite(s2)) state.sigma2 = Math.max(s2, 1e-9);
+    if (isFinite(n)) state.n = Math.min(N_MAX, Math.max(N_MIN, Math.round(n)));
+    if (isFinite(a)) state.alpha = Math.min(0.5, Math.max(1e-7, a));
+  }
+
+  const nToSlider = (n) => Math.round(1000 * Math.log(n) / Math.log(N_MAX));
+  const sliderToN = (p) => Math.max(N_MIN, Math.min(N_MAX, Math.round(Math.exp(p / 1000 * Math.log(N_MAX)))));
+
+  ['mu0', 'mu1', 'sigma2', 'n', 'alpha'].forEach((id) => {
+    $(id).addEventListener('input', () => {
+      readInputs();
+      if (id === 'n') $('nslider').value = nToSlider(state.n);
+      if (id === 'alpha') setAlphaButtons();
+      render();
+    });
+  });
+
+  $('nslider').addEventListener('input', () => {
+    state.n = sliderToN(parseInt($('nslider').value, 10));
+    $('n').value = state.n;
+    render();
+  });
+
+  $('mode').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-m]');
+    if (!b) return;
+    state.mode = b.dataset.m;
+    Array.from($('mode').children).forEach((x) =>
+      x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  });
+
+  document.querySelectorAll('.presets button').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.alpha = parseFloat(b.dataset.a);
+      $('alpha').value = state.alpha;
+      setAlphaButtons();
+      render();
+    });
+  });
+
+  function setAlphaButtons() {
+    document.querySelectorAll('.presets button').forEach((b) => {
+      const on = Math.abs(parseFloat(b.dataset.a) - state.alpha) < 1e-9;
+      b.style.background = on ? '#111827' : '';
+      b.style.color = on ? '#fff' : '';
+      b.style.borderColor = on ? '#111827' : '';
+    });
+  }
+
+  $('reset').addEventListener('click', () => {
+    Object.assign(state, DEFAULTS);
+    $('mu0').value = state.mu0;
+    $('mu1').value = state.mu1;
+    $('sigma2').value = state.sigma2;
+    $('n').value = state.n;
+    $('nslider').value = nToSlider(state.n);
+    $('alpha').value = state.alpha;
+    Array.from($('mode').children).forEach((x) =>
+      x.setAttribute('aria-pressed', String(x.dataset.m === state.mode)));
+    setAlphaButtons();
+    render();
+  });
+
+  /* --- dragging the critical line --------------------------------- */
+  let dragging = false;
+
+  function setAlphaFromPointer(clientX) {
+    if (!view) return;
+    const rect = mainCanvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const { xmin, xmax, pad, W, SE } = view;
+    const x = xmin + (px - pad.l) / (W - pad.l - pad.r) * (xmax - xmin);
+    const m = Math.abs(x - state.mu0) / SE;
+    let a = state.mode === 'two' ? 2 * (1 - cdf(m)) : (1 - cdf(m));
+    a = Math.min(0.5, Math.max(1e-7, a));
+    state.alpha = a;
+    $('alpha').value = String(+a.toPrecision(4));
+    setAlphaButtons();
+    render();
+  }
+
+  mainCanvas.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    try { mainCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+    setAlphaFromPointer(e.clientX);
+  });
+  mainCanvas.addEventListener('pointermove', (e) => {
+    if (dragging) { setAlphaFromPointer(e.clientX); return; }
+    if (!view) return;
+    const rect = mainCanvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    let near = false;
+    for (const c of [view.dC1, view.dC2]) {
+      if (isFinite(c) && Math.abs(view.X(c) - px) < 9) near = true;
+    }
+    mainCanvas.style.cursor = near ? 'ew-resize' : 'default';
+  });
+  const stop = (e) => {
+    dragging = false;
+    try { mainCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+  };
+  mainCanvas.addEventListener('pointerup', stop);
+  mainCanvas.addEventListener('pointercancel', stop);
+
+  /* --- resize ------------------------------------------------------ */
+  let raf = null;
+  const ro = new ResizeObserver(() => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(render);
+  });
+  ro.observe(mainCanvas);
+  ro.observe(powerCanvas);
+
+  /* --- boot --------------------------------------------------------- */
+  $('nslider').value = nToSlider(state.n);
+  setAlphaButtons();
+  render();
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>
